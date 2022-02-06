@@ -4,9 +4,10 @@ from time import sleep
 import datetime as dt
 import pandas as pd
 import argparse
+import yfinance as yf
 
 
-def scrape_finviz(liquidity=10, monthly=False):
+def scrape_finviz(liquidity=10, monthly=False, longterm=False):
     """
     FILTERS
 
@@ -83,6 +84,17 @@ def scrape_finviz(liquidity=10, monthly=False):
                           'Current Volume': 'Over 100K', 'IPO Date': 'More than a year ago',
                           'Industry': 'Stocks only (ex-Funds)'}
         filters = {'IPO>1YR Monthly': monthly_screen}
+    elif longterm:
+        largecap_earns_screen = {'Market Cap.': '+Large (over $10bln)', 'EPS growthpast 5 years': 'Over 10%',
+                           '200-Day Simple Moving Average': 'Price above SMA200', 'Industry': 'Stocks only (ex-Funds)',
+                           'EPS growththis year': 'Over 5%', 'Country': 'USA', 'EPS growthnext year': 'Over 10%',
+                           'Average True Range': 'Over 1'}
+        longterm_screen = {'Market Cap.': '+Mid (over $2bln)', '200-Day Simple Moving Average': 'Price above SMA200',
+                           'Industry': 'Stocks only (ex-Funds)', 'EPS growththis year': 'Over 10%',
+                           'EPS growthnext year': 'Over 10%', 'EPS growthqtr over qtr': 'Over 10%',
+                           'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
+                           'Average True Range': 'Over 1', 'Average Volume': 'Over 500K'}
+        filters = {'+Large Cap - Earnings': largecap_earns_screen, 'Longterm': longterm_screen}
     else:
         tml_sales = {'Price': 'Over $5', 'Average True Range': 'Over 1', '200-Day Simple Moving Average': 'Price above SMA200',
                      'Average Volume': 'Over 1M', 'Gross Margin': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
@@ -195,10 +207,45 @@ def save_tickers(filename, tickers):
 
     tickers.to_csv(filename, mode='w', index_label='Date')
 
+def get_stock_price_data(ticker):
+    """
+    Get stock price data using yfinance
+
+    :param ticker: stock ticker
+    :return price data dict with OHLCV
+    """
+
+    today = dt.datetime.today()
+
+    price_data = yf.download(ticker, start=(today-dt.timedelta(days=65)).strftime('%Y-%m-%d'),
+                             end=today.strftime('%Y-%m-%d'))
+
+    return price_data
+
+def ADR(price_data, lookback):
+    """
+    Average daily range. Based on Qullamaggie. Similar to ATR but % based for daily ranges
+
+    :param price_data: data to check
+    :param lookback: lookback period
+    :return: % ADR value
+    """
+
+    high = price_data['High'][-lookback:]
+    low = price_data['Low'][-lookback:]
+
+    drange = high/low
+
+    # calc daily range averaged over 20 days
+    ADR = 100. * ((drange.rolling(window=20).mean()) - 1)
+
+    return ADR
+
 def main():
 
     parser = argparse.ArgumentParser(description='Finviz Scraper')
     parser.add_argument('-monthly', action='store_true', help='Run IPO>1YR Monthly screen')
+    parser.add_argument('-longterm', action='store_true', help='Long term big cap growth screen')
     args = parser.parse_args()
 
     today = dt.datetime.now()
@@ -206,6 +253,9 @@ def main():
     if args.monthly:
         filename = datadir+today.strftime('%Y%m%d')+'_MONTHLY'+'.csv'
         liq = 0 # want to check all monthly charts
+    elif args.longterm:
+        filename = datadir+today.strftime('%Y%m%d')+'_LONGTERM_BIGCAP'+'.csv'
+        liq = float(input('Liquidity filter [M]: '))
     else:
         filename = datadir + today.strftime('%Y%m%d') + '_' + today.strftime('%H%M%S') + '.csv'
         liq = float(input('Liquidity filter [M]: '))
@@ -213,7 +263,7 @@ def main():
     print('Finviz Screens')
     print('Liquidity: ', str(liq)+'M')
 
-    tickers, count, failed = scrape_finviz(liquidity=liq, monthly=args.monthly)
+    tickers, count, failed = scrape_finviz(liquidity=liq, monthly=args.monthly, longterm=args.longterm)
     print("\n")
     print('Screened ', count, ' tickers')
     print('Failed liquidity: ', failed)
