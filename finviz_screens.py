@@ -79,8 +79,8 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False):
     """
 
     if monthly:
-        monthly_screen = {'Price': 'Over $5', 'Average True Range': 'Over 1',
-                          '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M',
+        monthly_screen = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
+                          '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                           'Current Volume': 'Over 100K', 'IPO Date': 'More than a year ago',
                           'Industry': 'Stocks only (ex-Funds)'}
         filters = {'IPO>1YR Monthly': monthly_screen}
@@ -88,81 +88,76 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False):
         largecap_earns_screen = {'Market Cap.': '+Large (over $10bln)', 'EPS growthpast 5 years': 'Over 10%',
                            '200-Day Simple Moving Average': 'Price above SMA200', 'Industry': 'Stocks only (ex-Funds)',
                            'EPS growththis year': 'Over 5%', 'Country': 'USA', 'EPS growthnext year': 'Over 10%',
-                           'Average True Range': 'Over 1'}
+                           'Volatility': 'Month - Over 3%'}
         longterm_screen = {'Market Cap.': '+Mid (over $2bln)', '200-Day Simple Moving Average': 'Price above SMA200',
                            'Industry': 'Stocks only (ex-Funds)', 'EPS growththis year': 'Over 10%',
                            'EPS growthnext year': 'Over 10%', 'EPS growthqtr over qtr': 'Over 10%',
                            'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
-                           'Average True Range': 'Over 1', 'Average Volume': 'Over 500K'}
+                           'Volatility': 'Month - Over 3%', 'Average Volume': 'Over 500K'}
         filters = {'+Large Cap - Earnings': largecap_earns_screen, 'Longterm': longterm_screen}
     else:
-        tml_sales = {'Price': 'Over $5', 'Average True Range': 'Over 1', '200-Day Simple Moving Average': 'Price above SMA200',
-                     'Average Volume': 'Over 1M', 'Gross Margin': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
+        tml_sales = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
+                     'Average Volume': 'Over 100K', 'Gross Margin': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
                      'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
 
-        tml_eps = {'Price': 'Over $5', 'Average True Range': 'Over 1', '200-Day Simple Moving Average': 'Price above SMA200',
-                   'Average Volume': 'Over 1M', 'Gross Margin': 'Over 20%', 'EPS growththis year': 'Over 30%',
+        tml_eps = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
+                   'Average Volume': 'Over 100K', 'Gross Margin': 'Over 20%', 'EPS growththis year': 'Over 30%',
                    'EPS growthqtr over qtr': 'Over 30%', 'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
 
-        ipo_5yr = {'Price': 'Over $5', 'Average True Range': 'Over 1', '50-Day Simple Moving Average': 'Price above SMA50',
+        ipo_5yr = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                    '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 500K',
                    'IPO Date': 'In the last 5 years', 'Industry': 'Stocks only (ex-Funds)'}
 
-        ipo_lastyr = {'Price': 'Over $5', 'Average True Range': 'Over 1', 'Average Volume': 'Over 100K',
+        ipo_lastyr = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Average Volume': 'Over 100K',
                       'Industry': 'Stocks only (ex-Funds)', 'IPO Date': 'In the last year'}
 
-        eps_sales_plus30pct = {'Price': 'Over $5', 'Average True Range': 'Over 1',
-                               '50-Day Simple Moving Average': 'Price above SMA50',
+        eps_sales_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                                '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                                'EPS growththis year': 'Over 30%', 'EPS growthqtr over qtr': 'Over 30%',
                                'Sales growthqtr over qtr': 'Over 30%', 'Industry': 'Stocks only (ex-Funds)'}
 
-        forward_eps_sales = {'Price': 'Over $5', 'Average True Range': 'Over 1',
-                             '50-Day Simple Moving Average': 'Price above SMA50',
-                             '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 500K',
+        forward_eps_sales = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
+                             '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                              'EPS growthnext year': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
                              'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
 
-        year_plus100pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 4%', 'Performance': 'Year +100%',
-                           '50-Day Simple Moving Average': 'Price above SMA50',
-                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M',
+        year_plus100pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Year +100%',
+                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                            'Industry': 'Stocks only (ex-Funds)'}
 
-        eps_neg_to_pos = {'Price': 'Over $5', 'Average True Range': 'Over 1', '52-Week High/Low': '70% or more above Low',
-                          '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
-                          '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M',
-                          'EPS growthnext year': 'Positive (>0%)', 'EPS growththis year': 'Negative (<0%)',
-                          'InstitutionalOwnership': 'Over 10%'}
+        eps_neg_to_pos = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '52-Week High/Low': '70% or more above Low',
+                          'Industry': 'Stocks only (ex-Funds)', '200-Day Simple Moving Average': 'Price above SMA200',
+                          'Average Volume': 'Over 100K', 'EPS growthnext year': 'Positive (>0%)',
+                          'EPS growththis year': 'Negative (<0%)', 'InstitutionalOwnership': 'Over 10%'}
 
-        half_year_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 4%', 'Performance': 'Half +30%',
-                           '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
-                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M'}
+        half_year_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Half +30%',
+                               'Industry': 'Stocks only (ex-Funds)',
+                               '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
 
-        qtr_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 4%', 'Performance': 'Quarter +30%',
-                           '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
-                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M'}
-
-        month_plus30pct = {'Price': 'Over $1', 'Volatility': 'Month - Over 4%', 'Performance': 'Month +30%',
-                           '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
+        qtr_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Quarter +30%',
+                           'Industry': 'Stocks only (ex-Funds)',
                            '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
 
-        longterm = {'Average True Range': 'Over 1', '200-Day Simple Moving Average': 'Price above SMA200',
+        month_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Month +30%',
+                           'Industry': 'Stocks only (ex-Funds)',
+                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
+
+        longterm = {'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
                     'Average Volume': 'Over 500K', 'EPS growththis year': 'Over 10%', 'EPS growthqtr over qtr': 'Over 10%',
                     'EPS growthnext year': 'Over 5%', 'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
                     'Market Cap.': '+Mid (over $2bln)', 'Industry': 'Stocks only (ex-Funds)'}
 
-        eps_growth_yoy = {'Price': 'Over $5', 'Average True Range': 'Over 1',
-                          '50-Day Simple Moving Average': 'Price above SMA50',
+        eps_growth_yoy = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                           '200-Day Simple Moving Average': 'Price above SMA200', 'Industry': 'Stocks only (ex-Funds)',
                           '52-Week High/Low': '70% or more above Low', 'Average Volume': 'Over 100K',
                           'EPS growththis year': 'Over 20%', 'EPS growthnext year': 'Over 20%',
                           'Gross Margin': 'Over 20%', 'InstitutionalOwnership': 'Over 10%'}
 
-        near_52w_high_base = {'Price': 'Over $3', 'Average True Range': 'Over 1', '52-Week High/Low': '0-10% below High',
-                          '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
-                          '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 1M'}
+        near_52w_high_base = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
+                              '52-Week High/Low': '0-10% below High', 'Industry': 'Stocks only (ex-Funds)',
+                               '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
 
-        pba_best_of_best = {'Price': 'Over $5', 'Average True Range': 'Over 1', 'Return on Equity': 'Over +10%',
+        pba_best_of_best = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Return on Equity': 'Over +10%',
                           '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
                           '200-Day Simple Moving Average': 'Price above SMA200',
                           'Average Volume': 'Over 500K', 'Sales growthqtr over qtr': 'Over 25%',
@@ -177,30 +172,48 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False):
 
     foverview = Overview()
     all_tickers = []
-    failed = []
+    #failed = []
     count = 0
 
     for screen, filters_dict in filters.items():
         print('Running screen: ', screen)
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view(order='52-Week High (Relative)', ascend=False)
-        try:
-            liquid = (df['Volume']*df['Price'])/1e6 > liquidity
-        except TypeError:
-            liquid = (float(df['Volume']) * float(df['Price'])) / 1e6 > float(liquidity)
-        updated = df[liquid]
-        count += len(df)
-        all_tickers.append(updated['Ticker'].values)
-        failed.append(len(df) - len(updated))
+        #try:
+        #    liquid = (df['Volume']*df['Price'])/1e6 > liquidity
+        #except TypeError:
+        #    liquid = (float(df['Volume']) * float(df['Price'])) / 1e6 > float(liquidity)
+        #updated = df[liquid]
+        for ticker in df['Ticker'].values:
+            all_tickers.append(ticker)
+        #all_tickers.append(updated['Ticker'].values)
+        #failed.append(len(df) - len(updated))
         sleep(0.2)
         print("\n")
 
-    final_tickers = []
-    for s in all_tickers:
-        for t in s:
-            final_tickers.append(t)
+    unique_tickers = np.unique(all_tickers)
 
-    return np.unique(final_tickers), count, np.sum(failed)
+    print(f'Checking liquidity of {len(unique_tickers)} tickers')
+    final_tickers = []
+    failed = 0
+    for ticker in unique_tickers:
+        price_data = get_stock_price_data(ticker)
+        avg_vol = price_data['Volume'].rolling(window=30).mean()
+        if (price_data['Adj Close'].iloc[-1] * avg_vol.iloc[-1]) / 1e6 > liquidity:
+            final_tickers.append(ticker)
+            count += 1
+        else:
+            failed += 1
+    print('Liquidity of tickers checked')
+
+    return final_tickers, count, failed
+
+    #final_tickers = []
+    #for s in all_tickers:
+    #    for t in s:
+    #        final_tickers.append(t)
+
+    #return np.unique(final_tickers), count, np.sum(failed)
 
 
 def save_tickers(filename, tickers):
