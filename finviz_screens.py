@@ -7,7 +7,7 @@ import argparse
 import yfinance as yf
 
 
-def scrape_finviz(liquidity=10, monthly=False, longterm=False):
+def scrape_finviz(liquidity=10, monthly=False, longterm=False, perf=True):
     """
     FILTERS
 
@@ -95,6 +95,15 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False):
                            'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
                            'Volatility': 'Month - Over 3%', 'Average Volume': 'Over 500K'}
         filters = {'+Large Cap - Earnings': largecap_earns_screen, 'Longterm': longterm_screen}
+    elif perf:
+        near_high = {'Market Cap.': '+Mid (over $2bln)', 'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
+                              '52-Week High/Low': '0-10% below High', 'Industry': 'Stocks only (ex-Funds)',
+                              'Average Volume': 'Over 200K'}
+
+        performing = {'Market Cap.': '+Mid (over $2bln)', 'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
+                      'Industry': 'Stocks only (ex-Funds)', 'Average Volume': 'Over 200K',
+                      'Performance': 'Year +30%'}
+        filters = {'Near High': near_high, 'Performing': performing}
     else:
         tml_sales = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
                      'Average Volume': 'Over 100K', 'Gross Margin': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
@@ -179,41 +188,34 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False):
         print('Running screen: ', screen)
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view(order='52-Week High (Relative)', ascend=False)
-        #try:
-        #    liquid = (df['Volume']*df['Price'])/1e6 > liquidity
-        #except TypeError:
-        #    liquid = (float(df['Volume']) * float(df['Price'])) / 1e6 > float(liquidity)
-        #updated = df[liquid]
+
         for ticker in df['Ticker'].values:
             all_tickers.append(ticker)
-        #all_tickers.append(updated['Ticker'].values)
-        #failed.append(len(df) - len(updated))
+
         sleep(0.2)
         print("\n")
 
     unique_tickers = np.unique(all_tickers)
 
-    print(f'Checking liquidity of {len(unique_tickers)} tickers')
-    final_tickers = []
-    failed = 0
-    for ticker in unique_tickers:
-        price_data = get_stock_price_data(ticker)
-        avg_vol = price_data['Volume'].rolling(window=30).mean()
-        if (price_data['Adj Close'].iloc[-1] * avg_vol.iloc[-1]) / 1e6 > liquidity:
-            final_tickers.append(ticker)
-            count += 1
-        else:
-            failed += 1
-    print('Liquidity of tickers checked')
+    if liquidity > 0:
+        print(f'Checking liquidity of {len(unique_tickers)} tickers')
+        final_tickers = []
+        failed = 0
+        for ticker in unique_tickers:
+            price_data = get_stock_price_data(ticker)
+            avg_vol = price_data['Volume'].rolling(window=30).mean()
+            if (price_data['Adj Close'].iloc[-1] * avg_vol.iloc[-1]) / 1e6 > liquidity:
+                final_tickers.append(ticker)
+                count += 1
+            else:
+                failed += 1
+        print('Liquidity of tickers checked')
+    else:
+        final_tickers = unique_tickers
+        failed = 0
+        count = len(unique_tickers)
 
     return final_tickers, count, failed
-
-    #final_tickers = []
-    #for s in all_tickers:
-    #    for t in s:
-    #        final_tickers.append(t)
-
-    #return np.unique(final_tickers), count, np.sum(failed)
 
 
 def save_tickers(filename, tickers):
@@ -231,7 +233,7 @@ def get_stock_price_data(ticker):
     today = dt.datetime.today()
 
     price_data = yf.download(ticker, start=(today-dt.timedelta(days=65)).strftime('%Y-%m-%d'),
-                             end=today.strftime('%Y-%m-%d'))
+                             end=today.strftime('%Y-%m-%d'), progress=False)
 
     return price_data
 
@@ -259,6 +261,7 @@ def main():
     parser = argparse.ArgumentParser(description='Finviz Scraper')
     parser.add_argument('-monthly', action='store_true', help='Run IPO>1YR Monthly screen')
     parser.add_argument('-longterm', action='store_true', help='Long term big cap growth screen')
+    parser.add_argument('-perf', action='store_true', help='Near highs and performers')
     args = parser.parse_args()
 
     today = dt.datetime.now()
@@ -266,6 +269,9 @@ def main():
     if args.monthly:
         filename = datadir+today.strftime('%Y%m%d')+'_MONTHLY'+'.csv'
         liq = 0 # want to check all monthly charts
+    elif args.perf:
+        filename = datadir + today.strftime('%Y%m%d') + '_PERFORMERS' + '.csv'
+        liq = float(input('Liquidity filter [M]: '))
     elif args.longterm:
         filename = datadir+today.strftime('%Y%m%d')+'_LONGTERM_BIGCAP'+'.csv'
         liq = float(input('Liquidity filter [M]: '))
