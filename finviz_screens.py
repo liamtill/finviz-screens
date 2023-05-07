@@ -207,7 +207,6 @@ def scrape_finviz(choices):
         print('Running screen: ', screen)
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view(order='52-Week High (Relative)', ascend=False)
-
         # append a list of all tickers from all screens
         for ticker in df['Ticker'].values:
             all_tickers.append(ticker)
@@ -216,10 +215,7 @@ def scrape_finviz(choices):
         sleep(0.2)
         print("\n")
 
-    # find unique tickers from all screens
-    unique_tickers = set(all_tickers)
-
-    return unique_tickers
+    return all_tickers
 
 
 def save_tickers(filename: str, tickers):
@@ -240,28 +236,41 @@ def menu():
         str: menu choices
     """
 
-    print('1. IPO>1YR Monthly')
-    print('2. +Large Cap - Earnings')
-    print('3. Near High')
-    print('4. Performing')
-    print('5. TML Sales')
-    print('6. TML EPS')
-    print('7. 5YR IPO')
-    print('8. IPO Last Year')
-    print('9. EPS+Sales +30%')
-    print('10. Forward EPS+Sales')
-    print('11. EPS -ve to +ve YoY')
-    print('12. Year +100%')
-    print('13. Half Year +30%')
-    print('14. Quarter +30%')
-    print('15. Month +30%')
-    print('16. Longterm')
-    print('17. EPS Growth YoY')
-    print('18. Near 52W High (Possible Base)')
-    print('19. PBA Best of Best')
-    print('20. Trending')
+    # menu choices
+    choices = {'1.': 'IPO>1YR Monthly',
+               '2.': '+Large Cap - Earnings',
+               '3.': 'Near High',
+               '4.': 'Performing',
+               '5.': 'TML Sales',
+               '6.': 'TML EPS',
+               '7.': '5YR IPO',
+               '8.': 'IPO Last Year',
+               '9.': 'EPS+Sales +30%',
+               '10.': 'Forward EPS+Sales',
+               '11.': 'EPS -ve to +ve YoY',
+               '12.': 'Year +100%',
+               '13.': 'Half Year +30%',
+               '14.': 'Quarter +30%',
+               '15.': 'Month +30%',
+               '16.': 'Longterm',
+               '17.': 'EPS Growth YoY',
+               '18.': 'Near 52W High (Possible Base)',
+               '19.': 'PBA Best of Best',
+               '20.': 'Trending',
+               }
+    
+    # make list of valid choices as ints
+    valid_choices = [int(x.strip('.')) for x in list(choices.keys())]
 
-    return input('\nSelect screens(s): ')
+    # print menu
+    for k, v in choices.items():
+        print(k, v)
+
+    # make int list form choices string
+    selected =  input('\nSelect screens(s): ')
+    selected = [int(x) for x in selected.split(',')]
+
+    return selected, valid_choices
 
 
 def main():
@@ -274,17 +283,25 @@ def main():
     print('** Finviz Screens **')
     print('Select one or more choices by separating with a comma:\n')
 
-    choices = menu()
-    # make int list form choices string
-    choices = [int(x) for x in choices.split(',')]
+    choices, valid_choices = menu()
+    # find any invalid choices
+    invalid = list(set(choices).difference(valid_choices))
+    # loop until valid choices slected
+    while len(invalid) > 0:
+        print(f'{invalid} are not valid choices. Please make your selection again')
+        choices, valid_choices = menu()
+        invalid = list(set(choices).difference(valid_choices))
 
     # run screen with choices
     tickers = scrape_finviz(choices)
     print(f'Screened: {len(tickers)} tickers')
 
-    filename = f'finviz_screen_{today}'
+    filename = f'finviz_screen_{today}.csv'
 
-    save_tickers(os.path.join(datadir, filename), pd.DataFrame(tickers))
+    # create dataframe and remove duplicates
+    data =pd.DataFrame(tickers, columns=['Ticker']).drop_duplicates(subset='Ticker')
+
+    save_tickers(os.path.join(datadir, filename), data)
     print('Saved screens to: ', filename)
 
 
