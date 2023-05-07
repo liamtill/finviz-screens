@@ -39,4 +39,4 @@ if 20 in choices:
 
 You would add another if statement for your new screen, create the dict endtry and add it to the filters dict.
 
-Dont forget to add the menu choice to the `menu()`
+Dont forget to add the menu choice to the menu dict in `menu()`
