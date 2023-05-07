@@ -1,14 +1,22 @@
 from finvizfinance.screener.overview import Overview
-import numpy as np
 from time import sleep
 import datetime as dt
 import pandas as pd
-import argparse
-import yfinance as yf
+import os
 
 
-def scrape_finviz(liquidity=10, monthly=False, longterm=False, perf=True):
+def scrape_finviz(choices):
     """
+    Run finviz screen for choices
+
+    Args:
+        choices (list): list of choices from menu
+    
+    Returns:
+        unique_tickers (list): list of unique tickers froms screens
+    
+    finviz package uses below strings to scrape website:
+
     FILTERS
 
     Exchange
@@ -78,217 +86,222 @@ def scrape_finviz(liquidity=10, monthly=False, longterm=False, perf=True):
     Float
     """
 
-    if monthly:
+    filters = {}
+
+    # select screens to run and store in filters to run them
+    if 1 in choices:
         monthly_screen = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                           'Current Volume': 'Over 100K', 'IPO Date': 'More than a year ago',
                           'Industry': 'Stocks only (ex-Funds)'}
-        filters = {'IPO>1YR Monthly': monthly_screen}
-    elif longterm:
+        filters['IPO>1YR Monthly'] = monthly_screen
+    if 2 in choices:
         largecap_earns_screen = {'Market Cap.': '+Large (over $10bln)', 'EPS growthpast 5 years': 'Over 10%',
                            '200-Day Simple Moving Average': 'Price above SMA200', 'Industry': 'Stocks only (ex-Funds)',
                            'EPS growththis year': 'Over 5%', 'Country': 'USA', 'EPS growthnext year': 'Over 10%',
                            'Volatility': 'Month - Over 3%'}
-        longterm_screen = {'Market Cap.': '+Mid (over $2bln)', '200-Day Simple Moving Average': 'Price above SMA200',
-                           'Industry': 'Stocks only (ex-Funds)', 'EPS growththis year': 'Over 10%',
-                           'EPS growthnext year': 'Over 10%', 'EPS growthqtr over qtr': 'Over 10%',
-                           'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
-                           'Volatility': 'Month - Over 3%', 'Average Volume': 'Over 500K'}
-        filters = {'+Large Cap - Earnings': largecap_earns_screen, 'Longterm': longterm_screen}
-    elif perf:
+        filters['+Large Cap - Earnings'] = largecap_earns_screen
+    if 3 in choices:
         near_high = {'Market Cap.': '+Mid (over $2bln)', 'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                               '52-Week High/Low': '0-10% below High', 'Industry': 'Stocks only (ex-Funds)',
                               'Average Volume': 'Over 200K'}
-
+        filters['Near High'] = near_high
+    if 4 in choices:
         performing = {'Market Cap.': '+Mid (over $2bln)', 'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                       'Industry': 'Stocks only (ex-Funds)', 'Average Volume': 'Over 200K',
                       'Performance': 'Year +30%'}
-        filters = {'Near High': near_high, 'Performing': performing}
-    else:
+        filters['Performing'] = performing
+    if 5 in choices:
         tml_sales = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
                      'Average Volume': 'Over 100K', 'Gross Margin': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
                      'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['TML Sales'] = tml_sales
+    if 6 in choices:
         tml_eps = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
                    'Average Volume': 'Over 100K', 'Gross Margin': 'Over 20%', 'EPS growththis year': 'Over 30%',
                    'EPS growthqtr over qtr': 'Over 30%', 'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['TML EPS'] = tml_eps
+    if 7 in choices:
         ipo_5yr = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                    '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 500K',
                    'IPO Date': 'In the last 5 years', 'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['5YR IPO'] = ipo_5yr
+    if 8 in choices:
         ipo_lastyr = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Average Volume': 'Over 100K',
                       'Industry': 'Stocks only (ex-Funds)', 'IPO Date': 'In the last year'}
-
+        filters['IPO Last Year'] = ipo_lastyr
+    if 9 in choices:
         eps_sales_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                                '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                                'EPS growththis year': 'Over 30%', 'EPS growthqtr over qtr': 'Over 30%',
                                'Sales growthqtr over qtr': 'Over 30%', 'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['EPS+Sales +30%'] = eps_sales_plus30pct
+    if 10 in choices:
         forward_eps_sales = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                              '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
                              'EPS growthnext year': 'Over 20%', 'Sales growthqtr over qtr': 'Over 30%',
                              'InstitutionalOwnership': 'Over 10%', 'Industry': 'Stocks only (ex-Funds)'}
-
-        year_plus100pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Year +100%',
-                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
-                           'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['Forward EPS+Sales'] = forward_eps_sales
+    if 11 in choices:
         eps_neg_to_pos = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', '52-Week High/Low': '70% or more above Low',
                           'Industry': 'Stocks only (ex-Funds)', '200-Day Simple Moving Average': 'Price above SMA200',
                           'Average Volume': 'Over 100K', 'EPS growthnext year': 'Positive (>0%)',
                           'EPS growththis year': 'Negative (<0%)', 'InstitutionalOwnership': 'Over 10%'}
-
+        filters['EPS -ve to +ve YoY'] = eps_neg_to_pos
+    if 12 in choices:
+        year_plus100pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Year +100%',
+                           '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K',
+                           'Industry': 'Stocks only (ex-Funds)'}
+        filters['Year +100%'] = year_plus100pct
+        
+    if 13 in choices:
         half_year_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Half +30%',
                                'Industry': 'Stocks only (ex-Funds)',
                                '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
-
+        filters['Half Year +30%'] = half_year_plus30pct
+    if 14 in choices:
         qtr_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Quarter +30%',
                            'Industry': 'Stocks only (ex-Funds)',
                            '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
-
+        filters['Quarter +30%'] = qtr_plus30pct
+    if 15 in choices:
         month_plus30pct = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Performance': 'Month +30%',
                            'Industry': 'Stocks only (ex-Funds)',
                            '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
-
+        filters['Month +30%'] = month_plus30pct
+    if 16 in choices:
         longterm = {'Volatility': 'Month - Over 3%', '200-Day Simple Moving Average': 'Price above SMA200',
                     'Average Volume': 'Over 500K', 'EPS growththis year': 'Over 10%', 'EPS growthqtr over qtr': 'Over 10%',
                     'EPS growthnext year': 'Over 5%', 'Sales growthqtr over qtr': 'Over 10%', 'Gross Margin': 'Over 20%',
                     'Market Cap.': '+Mid (over $2bln)', 'Industry': 'Stocks only (ex-Funds)'}
-
+        filters['Longterm'] = longterm
+    if 17 in choices:
         eps_growth_yoy = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                           '200-Day Simple Moving Average': 'Price above SMA200', 'Industry': 'Stocks only (ex-Funds)',
                           '52-Week High/Low': '70% or more above Low', 'Average Volume': 'Over 100K',
                           'EPS growththis year': 'Over 20%', 'EPS growthnext year': 'Over 20%',
                           'Gross Margin': 'Over 20%', 'InstitutionalOwnership': 'Over 10%'}
-
+        filters['EPS Growth YoY'] = eps_growth_yoy
+    if 18 in choices:
         near_52w_high_base = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%',
                               '52-Week High/Low': '0-10% below High', 'Industry': 'Stocks only (ex-Funds)',
                                '200-Day Simple Moving Average': 'Price above SMA200', 'Average Volume': 'Over 100K'}
-
+        filters['Near 52W High (Possible Base)'] = near_52w_high_base
+    if 19 in choices:
         pba_best_of_best = {'Price': 'Over $5', 'Volatility': 'Month - Over 3%', 'Return on Equity': 'Over +10%',
                           '50-Day Simple Moving Average': 'Price above SMA50', 'Industry': 'Stocks only (ex-Funds)',
                           '200-Day Simple Moving Average': 'Price above SMA200',
                           'Average Volume': 'Over 500K', 'Sales growthqtr over qtr': 'Over 25%',
                           'EPS growththis year': 'Over 25%'}
-
-        filters = {'TML Sales': tml_sales, 'TML EPS': tml_eps, '5YR IPO': ipo_5yr, 'IPO Last Year': ipo_lastyr,
-                   'EPS+Sales +30%': eps_sales_plus30pct, 'Forward EPS+Sales': forward_eps_sales,
-                   'EPS -ve to +ve YoY': eps_neg_to_pos, 'Year +100%': year_plus100pct,
-                   'Half +30%': half_year_plus30pct, 'Quarter +30%': qtr_plus30pct, 'Month +30%': month_plus30pct,
-                   'Longterm': longterm, 'EPS Growth YoY': eps_growth_yoy, 'Near 52W High (BASE)': near_52w_high_base,
-                   'PBA Best of Best': pba_best_of_best}
+        filters['PBA Best of Best'] = pba_best_of_best
+    if 20 in choices:
+        trending = {'Price': 'Over $10', 'Market Cap.': '+Small (over $300mln)', '50-Day Simple Moving Average': 'Price above SMA50',
+                    '200-Day Simple Moving Average': 'Price above SMA200', 'Volatility': 'Month - Over 2%', 'Average Volume': 'Over 300K'}
+        filters['Trending'] = trending
 
     foverview = Overview()
     all_tickers = []
-    #failed = []
-    count = 0
 
+    # loop screens and use finviz scraper to get tickers, sort by 52 week high desc
     for screen, filters_dict in filters.items():
         print('Running screen: ', screen)
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view(order='52-Week High (Relative)', ascend=False)
-
+        # append a list of all tickers from all screens
         for ticker in df['Ticker'].values:
             all_tickers.append(ticker)
 
+        # slight delay to not sned to many requests quickly
         sleep(0.2)
         print("\n")
 
-    unique_tickers = np.unique(all_tickers)
-
-    if liquidity > 0:
-        print(f'Checking liquidity of {len(unique_tickers)} tickers')
-        final_tickers = []
-        failed = 0
-        for ticker in unique_tickers:
-            price_data = get_stock_price_data(ticker)
-            avg_vol = price_data['Volume'].rolling(window=30).mean()
-            if (price_data['Adj Close'].iloc[-1] * avg_vol.iloc[-1]) / 1e6 > liquidity:
-                final_tickers.append(ticker)
-                count += 1
-            else:
-                failed += 1
-        print('Liquidity of tickers checked')
-    else:
-        final_tickers = unique_tickers
-        failed = 0
-        count = len(unique_tickers)
-
-    return final_tickers, count, failed
+    return all_tickers
 
 
-def save_tickers(filename, tickers):
+def save_tickers(filename: str, tickers):
+    """Save tickers to file
 
-    tickers.to_csv(filename, mode='w', index_label='Date')
-
-def get_stock_price_data(ticker):
-    """
-    Get stock price data using yfinance
-
-    :param ticker: stock ticker
-    :return price data dict with OHLCV
+    Args:
+        filename (str): filename
+        tickers (dataframe): pandas dataframe of tickers
     """
 
-    today = dt.datetime.today()
+    tickers.to_csv(filename, mode='w')
 
-    price_data = yf.download(ticker, start=(today-dt.timedelta(days=65)).strftime('%Y-%m-%d'),
-                             end=today.strftime('%Y-%m-%d'), progress=False)
 
-    return price_data
+def menu():
+    """Screen menu selection
 
-def ADR(price_data, lookback):
-    """
-    Average daily range. Based on Qullamaggie. Similar to ATR but % based for daily ranges
-
-    :param price_data: data to check
-    :param lookback: lookback period
-    :return: % ADR value
+    Returns:
+        str: menu choices
     """
 
-    high = price_data['High'][-lookback:]
-    low = price_data['Low'][-lookback:]
+    # menu choices
+    choices = {'1.': 'IPO>1YR Monthly',
+               '2.': '+Large Cap - Earnings',
+               '3.': 'Near High',
+               '4.': 'Performing',
+               '5.': 'TML Sales',
+               '6.': 'TML EPS',
+               '7.': '5YR IPO',
+               '8.': 'IPO Last Year',
+               '9.': 'EPS+Sales +30%',
+               '10.': 'Forward EPS+Sales',
+               '11.': 'EPS -ve to +ve YoY',
+               '12.': 'Year +100%',
+               '13.': 'Half Year +30%',
+               '14.': 'Quarter +30%',
+               '15.': 'Month +30%',
+               '16.': 'Longterm',
+               '17.': 'EPS Growth YoY',
+               '18.': 'Near 52W High (Possible Base)',
+               '19.': 'PBA Best of Best',
+               '20.': 'Trending',
+               }
+    
+    # make list of valid choices as ints
+    valid_choices = [int(x.strip('.')) for x in list(choices.keys())]
 
-    drange = high/low
+    # print menu
+    for k, v in choices.items():
+        print(k, v)
 
-    # calc daily range averaged over 20 days
-    ADR = 100. * ((drange.rolling(window=20).mean()) - 1)
+    # make int list form choices string
+    selected =  input('\nSelect screens(s): ')
+    selected = [int(x) for x in selected.split(',')]
 
-    return ADR
+    return selected, valid_choices
+
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Finviz Scraper')
-    parser.add_argument('-monthly', action='store_true', help='Run IPO>1YR Monthly screen')
-    parser.add_argument('-longterm', action='store_true', help='Long term big cap growth screen')
-    parser.add_argument('-perf', action='store_true', help='Near highs and performers')
-    args = parser.parse_args()
+    today = dt.datetime.now().strftime('%Y-%m-%d_%H%M')
+    datadir = os.path.join(os.getcwd(), 'screens/')
+    if not os.path.exists(datadir):
+        os.makedirs(datadir)
 
-    today = dt.datetime.now()
-    datadir = 'screens/'
-    if args.monthly:
-        filename = datadir+today.strftime('%Y%m%d')+'_MONTHLY'+'.csv'
-        liq = 0 # want to check all monthly charts
-    elif args.perf:
-        filename = datadir + today.strftime('%Y%m%d') + '_PERFORMERS' + '.csv'
-        liq = float(input('Liquidity filter [M]: '))
-    elif args.longterm:
-        filename = datadir+today.strftime('%Y%m%d')+'_LONGTERM_BIGCAP'+'.csv'
-        liq = float(input('Liquidity filter [M]: '))
-    else:
-        filename = datadir + today.strftime('%Y%m%d') + '_' + today.strftime('%H%M%S') + '.csv'
-        liq = float(input('Liquidity filter [M]: '))
+    print('** Finviz Screens **')
+    print('Select one or more choices by separating with a comma:\n')
 
-    print('Finviz Screens')
-    print('Liquidity: ', str(liq)+'M')
+    choices, valid_choices = menu()
+    # find any invalid choices
+    invalid = list(set(choices).difference(valid_choices))
+    # loop until valid choices slected
+    while len(invalid) > 0:
+        print(f'{invalid} are not valid choices. Please make your selection again')
+        choices, valid_choices = menu()
+        invalid = list(set(choices).difference(valid_choices))
 
-    tickers, count, failed = scrape_finviz(liquidity=liq, monthly=args.monthly, longterm=args.longterm)
-    print("\n")
-    print('Screened ', count, ' tickers')
-    print('Failed liquidity: ', failed)
-    print('Passed liquidity: ', len(tickers))
+    # run screen with choices
+    tickers = scrape_finviz(choices)
+    print(f'Screened: {len(tickers)} tickers')
 
-    save_tickers(filename, pd.DataFrame(tickers))
+    filename = f'finviz_screen_{today}.csv'
+
+    # create dataframe and remove duplicates
+    data =pd.DataFrame(tickers, columns=['Ticker']).drop_duplicates(subset='Ticker')
+
+    save_tickers(os.path.join(datadir, filename), data)
     print('Saved screens to: ', filename)
 
 
